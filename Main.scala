@@ -24,25 +24,12 @@ object Main extends App {
     sslContext.init(null, trustAllCerts, new SecureRandom())
     sslContext
   }
-
-  def createInsecureSslEngine(host: String, port: Int): SSLEngine = {
-    val context = createInsecureSslContext()   
-
-    val engine = context.createSSLEngine(host, port)
-    // val engine = SSLContext.getDefault.createSSLEngine(host, port)
-    engine.setUseClientMode(true)
-    engine.setSSLParameters({
-      val params = engine.getSSLParameters
-      params.setEndpointIdentificationAlgorithm("https")
-      params})
-    engine
-  }
+  val noCertificateCheckContext = ConnectionContext.https(createInsecureSslContext)
 
   implicit val system = ActorSystem()
-  val url = "https://nu.nl"
-  val badCtx = ConnectionContext.httpsClient(createInsecureSslEngine _)
-  val res = Http().outgoingConnectionHttps("expired.badssl.com", 443, connectionContext = badCtx)
-  val response = Await.result(Source.single(Get(url)).via(res).runWith(Sink.head), 60 seconds)
+  val url = "https://self-signed.badssl.com"
+  val response = Await.result(Http().singleRequest(Get(url), noCertificateCheckContext), 60 seconds)
+  println(response)
   val responseString = Await.result(Unmarshal(response).to[String], 60 seconds)
   println(responseString)
   system.terminate()
