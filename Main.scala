@@ -15,7 +15,6 @@ import akka.stream.scaladsl._
 object Main extends App {
   implicit val system: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "SingleRequest")
   implicit val executionContext: ExecutionContextExecutor = system.executionContext
-  val noCertificateCheckContext = ConnectionContext.https(trustfulSslContext)
 
   private val trustfulSslContext: SSLContext = {
     object NoCheckX509TrustManager extends X509TrustManager {
@@ -30,6 +29,7 @@ object Main extends App {
     context.init(Array[KeyManager](), Array(NoCheckX509TrustManager), new SecureRandom())
     context
   }
+  val noCertificateCheckContext = ConnectionContext.https(trustfulSslContext)
   val url = "https://self-signed.badssl.com"
   val res = Await.result(Http().singleRequest(Get(url), noCertificateCheckContext), 60 seconds)
   println(res)
